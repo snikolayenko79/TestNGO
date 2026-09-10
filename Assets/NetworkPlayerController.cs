@@ -4,31 +4,10 @@ using UnityEngine;
 public class NetworkPlayerController : NetworkBehaviour
 {
     [SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private MeshRenderer meshRenderer;
-
-    // Сделали переменную PUBLIC. Сервер по-прежнему единственный, кто имеет право в неё писать.
-    public readonly NetworkVariable<Color> NetColor = new NetworkVariable<Color>(
-        Color.white, 
-        NetworkVariableReadPermission.Everyone, 
-        NetworkVariableWritePermission.Server
-    );
-
-    private void Awake()
-    {
-        if (meshRenderer == null)
-            meshRenderer = GetComponent<MeshRenderer>();
-    }
     
     // Метод вызывается автоматически, когда объект успешно спавнится в сети
     public override void OnNetworkSpawn()
     {
-        // 1. Подписываемся на событие изменения цвета. 
-        // Когда сервер изменит переменную, этот метод выполнится у ВСЕХ клиентов для ЭТОГО куба.
-        NetColor.OnValueChanged += OnColorChanged;
-
-        // 2. Сразу красим куб в текущее значение (нужно для тех, кто зашел в игру позже)
-        meshRenderer.material.color = NetColor.Value;
-        
         // Если это не наш персонаж (а другого игрока), выключаем ему камеру или локальную логику
         if (!IsOwner)
         {
@@ -36,26 +15,6 @@ public class NetworkPlayerController : NetworkBehaviour
             // чтобы они не конфликтовали с вашими.
             return;
         }
-    }
-
-    public override void OnNetworkDespawn()
-    {
-        NetColor.OnValueChanged -= OnColorChanged;
-    }
-    
-    // Метод генерации случайного цвета на сервере
-    public void AssignRandomColor()
-    {
-        if (!IsServer) return;
-        
-        // Запись в Value автоматически запустит синхронизацию по сети
-        NetColor.Value = Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f);
-    }
-
-    private void OnColorChanged(Color previousValue, Color newValue)
-    {
-        // На клиенте просто обновляем цвет материала
-        meshRenderer.material.color = newValue;
     }
     
     private void Update()

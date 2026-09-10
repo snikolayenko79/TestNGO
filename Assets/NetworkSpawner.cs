@@ -4,7 +4,15 @@ using UnityEngine;
 public class NetworkSpawner : MonoBehaviour
 {
     [SerializeField] private GameObject playerPrefab;
+    
+    [SerializeField] INetworkColorAssigmentService  networkColorAssigmentService;
 
+    private void Awake()
+    {
+        // здесь бы Zenject/Vcontainer
+        networkColorAssigmentService = new RandomNetworkColorAssignmentService();
+    }
+    
     private void Start()
     {
         NetworkManager.Singleton.OnClientConnectedCallback += SpawnPlayer;
@@ -34,14 +42,9 @@ public class NetworkSpawner : MonoBehaviour
         networkObject.SpawnAsPlayerObject(clientId);
         
         // ПРЯМОЕ НАЗНАЧЕНИЕ ЦВЕТА ИЗ СПАВНЕРА:
-        if (playerInstance.TryGetComponent<NetworkPlayerController>(out var controller))
+        if (playerInstance.TryGetComponent<INetworkColorable>(out var colorable))
         {
-            // Генерируем цвет здесь
-            Color randomColor = Random.ColorHSV(0f, 1f, 1f, 1f, 0.5f, 1f);
-
-            // Напрямую пишем в NetworkVariable объекта. 
-            // Так как этот код выполняется на сервере, NGO разрешит запись.
-            controller.NetColor.Value = randomColor;
+            networkColorAssigmentService.AssignColor(colorable);
         }
     }
 }
