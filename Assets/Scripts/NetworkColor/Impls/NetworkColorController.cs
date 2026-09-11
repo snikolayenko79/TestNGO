@@ -3,19 +3,22 @@ using Unity.Netcode;
 
 public class NetworkColorController : NetworkBehaviour, INetworkColorable
 {
+    private IObjectColorChangeService _objectColorChangeService;
+    public IObjectColorChangeService ObjectColorChangeService
+    {
+        get
+        {
+            if (_objectColorChangeService == null)
+                _objectColorChangeService = this.GetComponent<IObjectColorChangeService>();
+            return _objectColorChangeService;
+        }
+    }
+    
     public NetworkVariable<Color> NetColor { get; } = new NetworkVariable<Color>(
         Color.white, 
         NetworkVariableReadPermission.Everyone, 
         NetworkVariableWritePermission.Server
     );
-    
-    [SerializeField] private MeshRenderer meshRenderer;
-    
-    private void Awake()
-    {
-        if (meshRenderer == null)
-            meshRenderer = GetComponent<MeshRenderer>();
-    }
     
     // Метод вызывается автоматически, когда объект успешно спавнится в сети
     public override void OnNetworkSpawn()
@@ -25,7 +28,7 @@ public class NetworkColorController : NetworkBehaviour, INetworkColorable
         NetColor.OnValueChanged += OnColorChanged;
 
         // 2. Сразу красим куб в текущее значение (нужно для тех, кто зашел в игру позже)
-        meshRenderer.material.color = NetColor.Value;
+        ObjectColorChangeService.ChangeColor(NetColor.Value);
     }
 
     public override void OnNetworkDespawn()
@@ -35,7 +38,6 @@ public class NetworkColorController : NetworkBehaviour, INetworkColorable
 
     private void OnColorChanged(Color previousValue, Color newValue)
     {
-        // На клиенте просто обновляем цвет материала
-        meshRenderer.material.color = newValue;
+        ObjectColorChangeService.ChangeColor(newValue);
     }
 }
